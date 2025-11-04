@@ -1,6 +1,8 @@
 using System.Reflection;
 using DSharpPlus;
 using DSharpPlus.SlashCommands;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,16 +18,23 @@ IHost host = Host.CreateDefaultBuilder(args)
             throw new Exception("Discord:Token is not set in user secrets!");
         }
 
-        services.AddSingleton(new DiscordClient(new DiscordConfiguration
+        var discord = new DiscordClient(new DiscordConfiguration
         {
             Token = token,
             TokenType = TokenType.Bot,
             Intents = DiscordIntents.Guilds | DiscordIntents.GuildMessages
-        }));
+        });
+
+        discord.UseInteractivity(new InteractivityConfiguration
+        {
+            Timeout = TimeSpan.FromMinutes(2)
+        });
+
+        services.AddSingleton(discord);
 
         services.AddSingleton(sp =>
         {
-            var client = sp.GetRequiredService<DiscordClient>(); 
+            var client = sp.GetRequiredService<DiscordClient>();
             var slash = client.UseSlashCommands(new SlashCommandsConfiguration
             {
                 Services = sp
@@ -35,6 +44,7 @@ IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton<FeaturesModule>();
         services.AddSingleton<MyGamingBot.Features.Polling.PollCommands>();
+        services.AddSingleton<MyGamingBot.Features.LFG.LfgCommands>();
         services.AddHostedService<BotHostedService>();
     })
     .Build();
