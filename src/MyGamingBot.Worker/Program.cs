@@ -32,9 +32,9 @@ IHost host = Host.CreateDefaultBuilder(args)
             });
             return slash;
         });
-        
-        services.AddSingleton<FeaturesModule>();
 
+        services.AddSingleton<FeaturesModule>();
+        services.AddSingleton<MyGamingBot.Features.Polling.PollCommands>();
         services.AddHostedService<BotHostedService>();
     })
     .Build();
