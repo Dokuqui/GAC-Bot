@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyGamingBot.Worker", "src\M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyGamingBot.Features", "src\MyGamingBot.Features\MyGamingBot.Features.csproj", "{340BCF76-A608-47D8-B535-2F7D2B4ECE36}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyGamingBot.Data", "src\MyGamingBot.Data\MyGamingBot.Data.csproj", "{428C7612-CE84-4870-916F-1C33F6DC9320}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,9 +28,14 @@ Global
 		{340BCF76-A608-47D8-B535-2F7D2B4ECE36}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{340BCF76-A608-47D8-B535-2F7D2B4ECE36}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{340BCF76-A608-47D8-B535-2F7D2B4ECE36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{428C7612-CE84-4870-916F-1C33F6DC9320}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{428C7612-CE84-4870-916F-1C33F6DC9320}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{428C7612-CE84-4870-916F-1C33F6DC9320}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{428C7612-CE84-4870-916F-1C33F6DC9320}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4E793517-52BA-424B-B117-CC20521197DC} = {10982428-FE79-4E93-B279-0E4C1E57351B}
 		{340BCF76-A608-47D8-B535-2F7D2B4ECE36} = {10982428-FE79-4E93-B279-0E4C1E57351B}
+		{428C7612-CE84-4870-916F-1C33F6DC9320} = {10982428-FE79-4E93-B279-0E4C1E57351B}
 	EndGlobalSection
 EndGlobal

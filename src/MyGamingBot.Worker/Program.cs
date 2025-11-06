@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MyGamingBot.Features;
 using MyGamingBot.Worker;
+using MyGamingBot.Data;
+using Microsoft.EntityFrameworkCore;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -17,6 +19,11 @@ IHost host = Host.CreateDefaultBuilder(args)
         {
             throw new Exception("Discord:Token is not set in user secrets!");
         }
+
+        services.AddDbContext<BotDbContext>(options =>
+        {
+            options.UseSqlite("Data Source=mybot.db");
+        });
 
         var discord = new DiscordClient(new DiscordConfiguration
         {
@@ -50,9 +57,16 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<MyGamingBot.Features.Quotes.QuoteService>();
         services.AddSingleton<MyGamingBot.Features.Quotes.QuoteCommands>();
         services.AddSingleton<MyGamingBot.Features.AI.AiCommands>();
+        services.AddSingleton<MyGamingBot.Features.Scheduling.ScheduleCommands>();
         services.AddHostedService<BotHostedService>();
     })
     .Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+    dbContext.Database.Migrate();
+}
 
 var slashCommands = host.Services.GetRequiredService<SlashCommandsExtension>();
 var featuresModule = host.Services.GetRequiredService<FeaturesModule>();
