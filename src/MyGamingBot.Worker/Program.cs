@@ -45,6 +45,8 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<FeaturesModule>();
         services.AddSingleton<MyGamingBot.Features.Polling.PollCommands>();
         services.AddSingleton<MyGamingBot.Features.LFG.LfgCommands>();
+        services.AddSingleton<MyGamingBot.Features.Quotes.QuoteService>(); 
+        services.AddSingleton<MyGamingBot.Features.Quotes.QuoteCommands>();
         services.AddHostedService<BotHostedService>();
     })
     .Build();
