@@ -1,59 +1,49 @@
-using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
+using MyGamingBot.Data;
+using MyGamingBot.Data.Models;
 
 namespace MyGamingBot.Features.Quotes;
 
-
 public class QuoteService
 {
-    private readonly List<Quote> _quotes;
-    private const string FilePath = "quotes.json";
+    private readonly BotDbContext _db;
     private readonly Random _random;
 
-    public QuoteService()
+    public QuoteService(BotDbContext dbContext)
     {
-        _quotes = LoadQuotes();
+        _db = dbContext;
         _random = new Random();
     }
 
-    private List<Quote> LoadQuotes()
-    {
-        if (!File.Exists(FilePath))
-        {
-            File.WriteAllText(FilePath, "[]");
-            return new List<Quote>();
-        }
-
-        string json = File.ReadAllText(FilePath);
-        return JsonConvert.DeserializeObject<List<Quote>>(json) ?? new List<Quote>();
-    }
-
-    private async Task SaveQuotesAsync()
-    {
-        string json = JsonConvert.SerializeObject(_quotes, Formatting.Indented);
-        await File.WriteAllTextAsync(FilePath, json);
-    }
-
-    public async Task AddQuoteAsync(string author, string text)
+    public async Task AddQuoteAsync(ulong guildId, string author, string text)
     {
         var newQuote = new Quote
         {
+            GuildId = guildId,
             Author = author,
             Text = text,
             AddedAt = DateTime.UtcNow
         };
 
-        _quotes.Add(newQuote);
-        await SaveQuotesAsync();
+        await _db.Quotes.AddAsync(newQuote);
+
+        await _db.SaveChangesAsync();
     }
 
-    public Quote? GetRandomQuote()
+    public async Task<Quote?> GetRandomQuoteAsync(ulong guildId)
     {
-        if (_quotes.Count == 0)
+        var count = await _db.Quotes.CountAsync(q => q.GuildId == guildId);
+        if (count == 0)
         {
             return null;
         }
 
-        int index = _random.Next(0, _quotes.Count);
-        return _quotes[index];
+        int index = _random.Next(0, count);
+
+        return await _db.Quotes
+            .Where(q => q.GuildId == guildId)
+            .OrderBy(q => q.Id)
+            .Skip(index)
+            .FirstOrDefaultAsync();
     }
 }

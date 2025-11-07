@@ -1,6 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using MyGamingBot.Data.Models;
 
 namespace MyGamingBot.Features.Quotes;
 
@@ -19,21 +20,21 @@ public class QuoteCommands : ApplicationCommandModule
         [Option("text", "The quote text.")] string text,
         [Option("author", "Who said it (use a @mention or just text).")] string author)
     {
-        await _quoteService.AddQuoteAsync(author, text);
+        await _quoteService.AddQuoteAsync(ctx.Guild.Id, author, text);
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("Quote Added!")
+            .WithTitle("✅ Quote Added!")
             .WithDescription($"\"{text}\"\n- {author}")
             .WithColor(DiscordColor.Green);
 
         await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
-            new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral(false));
+            new DiscordInteractionResponseBuilder().AddEmbed(embed));
     }
 
     [SlashCommand("random", "Get a random quote from the book.")]
     public async Task GetRandomQuote(InteractionContext ctx)
     {
-        var quote = _quoteService.GetRandomQuote();
+        var quote = await _quoteService.GetRandomQuoteAsync(ctx.Guild.Id);
 
         if (quote == null)
         {
