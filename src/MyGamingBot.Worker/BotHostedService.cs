@@ -11,11 +11,13 @@ public class BotHostedService : IHostedService
 {
     private readonly ILogger<BotHostedService> _logger;
     private readonly DiscordClient _discord;
+    private readonly IConfiguration _config;
 
-    public BotHostedService(ILogger<BotHostedService> logger, DiscordClient discord)
+    public BotHostedService(ILogger<BotHostedService> logger, DiscordClient discord, IConfiguration config)
     {
         _logger = logger;
         _discord = discord;
+        _config = config;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -23,6 +25,7 @@ public class BotHostedService : IHostedService
         _logger.LogInformation("Bot is starting...");
 
         _discord.ComponentInteractionCreated += OnComponentInteractionCreated;
+        _discord.GuildMemberAdded += OnGuildMemberAdded;
 
         await _discord.ConnectAsync();
         _logger.LogInformation("Bot is connected.");
@@ -110,5 +113,43 @@ public class BotHostedService : IHostedService
             new DiscordInteractionResponseBuilder()
                 .AddEmbed(newEmbed)
                 .AddComponents(e.Message.Components));
+    }
+
+    private async Task OnGuildMemberAdded(DiscordClient sender, GuildMemberAddEventArgs e)
+    {
+        _logger.LogInformation($"New member joined: {e.Member.Username} in guild {e.Guild.Name}");
+
+        ulong roleId = _config.GetValue<ulong>("GuildSettings:WelcomeRole");
+        if (roleId == 0)
+        {
+            _logger.LogError("WelcomeRole is not set in configuration!");
+            return;
+        }
+
+        DiscordRole? role = e.Guild.GetRole(roleId);
+        if (role == null)
+        {
+            _logger.LogError($"Could not find role with ID {roleId} in guild {e.Guild.Name}");
+            return;
+        }
+
+        try
+        {
+            await e.Member.GrantRoleAsync(role, "New member role assignment");
+            _logger.LogInformation($"Assigned role '{role.Name}' to {e.Member.Username}");
+
+            var dmEmbed = new DiscordEmbedBuilder()
+                .WithTitle($"Welcome to {e.Guild.Name}!")
+                .WithDescription($"Hi {e.Member.Mention}! We're glad to have you. Please take a moment to read the server rules.")
+                .WithColor(DiscordColor.Green)
+                .WithThumbnail(e.Guild.IconUrl);
+
+            await e.Member.SendMessageAsync(dmEmbed);
+            _logger.LogInformation($"Sent welcome DM to {e.Member.Username}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to assign role or DM new user {e.Member.Username}");
+        }
     }
 }

@@ -52,12 +52,21 @@ IHost host = Host.CreateDefaultBuilder(args)
         });
 
         services.AddSingleton<FeaturesModule>();
+
         services.AddSingleton<MyGamingBot.Features.Polling.PollCommands>();
+
         services.AddSingleton<MyGamingBot.Features.LFG.LfgCommands>();
+
         services.AddSingleton<MyGamingBot.Features.Quotes.QuoteService>();
         services.AddSingleton<MyGamingBot.Features.Quotes.QuoteCommands>();
+
+        services.AddSingleton<MyGamingBot.Features.Leaderboard.LeaderboardService>();
+        services.AddSingleton<MyGamingBot.Features.Leaderboard.LeaderboardCommands>();
+
         services.AddSingleton<MyGamingBot.Features.AI.AiCommands>();
+
         services.AddSingleton<MyGamingBot.Features.Scheduling.ScheduleCommands>();
+        
         services.AddHostedService<BotHostedService>();
     })
     .Build();
