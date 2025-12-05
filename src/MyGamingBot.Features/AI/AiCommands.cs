@@ -22,7 +22,7 @@ public class AiCommands : ApplicationCommandModule
         _httpClientFactory = httpClientFactory;
 
         _geminiApiKey = config.GetValue<string>("GoogleAi:Key")!;
-        _geminiApiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_geminiApiKey}";
+        _geminiApiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key={_geminiApiKey}";
 
         _searchApiKey = config.GetValue<string>("GoogleSearch:Key")!;
         _searchCx = config.GetValue<string>("GoogleSearch:Cx")!;

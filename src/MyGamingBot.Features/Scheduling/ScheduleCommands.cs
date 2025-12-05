@@ -1,20 +1,22 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using MyGamingBot.Data;
+using MyGamingBot.Data.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Text;
 
 namespace MyGamingBot.Features.Scheduling;
 
 [SlashCommandGroup("schedule", "Commands for scheduling game nights.")]
 public class ScheduleCommands : ApplicationCommandModule
 {
-    private static readonly List<ScheduledEvent> _events = new();
+    private readonly BotDbContext _db;
 
-    private class ScheduledEvent
+    public ScheduleCommands(BotDbContext dbContext)
     {
-        public string Game { get; set; } = "";
-        public DateTime StartTime { get; set; }
-        public string? Description { get; set; }
+        _db = dbContext;
     }
 
     [SlashCommand("create", "Schedule a new game night event.")]
@@ -41,45 +43,82 @@ public class ScheduleCommands : ApplicationCommandModule
             return;
         }
 
-        _events.Add(new ScheduledEvent
+        var newEvent = new ScheduledEvent
         {
+            GuildId = ctx.Guild.Id,
+            CreatorId = ctx.User.Id,
             Game = game,
-            StartTime = startTime,
-            Description = description
-        });
+            Description = description ?? "No description provided.",
+            StartTime = startTime
+        };
+
+        await _db.ScheduledEvents.AddAsync(newEvent);
+        await _db.SaveChangesAsync();
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("✅ Event Scheduled!")
-            .WithDescription($"I've scheduled the **{game}** event for you.")
+            .WithTitle("✅ Event Saved to Database!")
+            .WithDescription($"I've scheduled **{game}**.\nEven if I restart, I will remember this!")
             .WithColor(DiscordColor.Green)
             .AddField("Time", $"<t:{new DateTimeOffset(startTime).ToUnixTimeSeconds()}:F>")
-            .AddField("Description", description ?? "No description provided.");
+            .AddField("Description", newEvent.Description);
 
         await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
     }
 
-    [SlashCommand("list", "List all upcoming scheduled events.")]
+    [SlashCommand("list", "List upcoming events from the database.")]
     public async Task ListSchedules(InteractionContext ctx)
     {
         await ctx.DeferAsync();
 
-        if (_events.Count == 0)
+        var futureEvents = await _db.ScheduledEvents
+            .Where(e => e.GuildId == ctx.Guild.Id && e.StartTime > DateTime.Now)
+            .OrderBy(e => e.StartTime)
+            .ToListAsync();
+
+        if (futureEvents.Count == 0)
         {
             await ctx.EditResponseAsync(new DiscordWebhookBuilder()
-                .WithContent("ℹ️ No events scheduled."));
+                .WithContent("ℹ️ No upcoming events found in the database."));
             return;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var ev in futureEvents)
+        {
+            long unixTime = new DateTimeOffset(ev.StartTime).ToUnixTimeSeconds();
+            sb.AppendLine($"**{ev.Game}**");
+            sb.AppendLine($"⏰ <t:{unixTime}:F> (<t:{unixTime}:R>)");
+            sb.AppendLine($"📝 {ev.Description}");
+            sb.AppendLine("------------------");
         }
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("📅 Upcoming Game Events")
-            .WithColor(DiscordColor.Blurple);
-
-        foreach (var ev in _events.OrderBy(e => e.StartTime))
-        {
-            embed.AddField($"{ev.Game} — <t:{new DateTimeOffset(ev.StartTime).ToUnixTimeSeconds()}:F>",
-                           ev.Description ?? "No description");
-        }
+            .WithDescription(sb.ToString())
+            .WithColor(DiscordColor.Blurple)
+            .WithFooter($"Found {futureEvents.Count} events in the database.");
 
         await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+    }
+
+    [SlashCommand("clear-old", "Delete events that have already passed.")]
+    public async Task ClearOldEvents(InteractionContext ctx)
+    {
+        await ctx.DeferAsync();
+
+        var oldEvents = await _db.ScheduledEvents
+            .Where(e => e.GuildId == ctx.Guild.Id && e.StartTime < DateTime.Now)
+            .ToListAsync();
+
+        if (oldEvents.Count > 0)
+        {
+            _db.ScheduledEvents.RemoveRange(oldEvents);
+            await _db.SaveChangesAsync();
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"🗑️ Cleaned up {oldEvents.Count} old events from the database."));
+        }
+        else
+        {
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("✨ No old events to clean up."));
+        }
     }
 }
