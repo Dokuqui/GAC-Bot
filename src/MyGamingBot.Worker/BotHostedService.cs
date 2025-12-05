@@ -1,6 +1,8 @@
 using DSharpPlus;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Entities;
+using DSharpPlus.Lavalink;
+using DSharpPlus.Net;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text;
@@ -12,12 +14,14 @@ public class BotHostedService : IHostedService
     private readonly ILogger<BotHostedService> _logger;
     private readonly DiscordClient _discord;
     private readonly IConfiguration _config;
+    private readonly LavalinkExtension _lavalink;
 
-    public BotHostedService(ILogger<BotHostedService> logger, DiscordClient discord, IConfiguration config)
+    public BotHostedService(ILogger<BotHostedService> logger, DiscordClient discord, IConfiguration config, LavalinkExtension lavalink)
     {
         _logger = logger;
         _discord = discord;
         _config = config;
+        _lavalink = lavalink;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -28,6 +32,29 @@ public class BotHostedService : IHostedService
         _discord.GuildMemberAdded += OnGuildMemberAdded;
 
         await _discord.ConnectAsync();
+        try
+        {
+            var endpoint = new ConnectionEndpoint
+            {
+                Hostname = "127.0.0.1",
+                Port = 2333
+            };
+
+            var lavalinkConfig = new LavalinkConfiguration
+            {
+                Password = "youshallnotpass",
+                RestEndpoint = endpoint,
+                SocketEndpoint = endpoint
+            };
+
+            await _lavalink.ConnectAsync(lavalinkConfig);
+            _logger.LogInformation("Lavalink connected successfully!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Lavalink connection failed: {ex.Message}. Make sure Lavalink.jar is running!");
+        }
+
         _logger.LogInformation("Bot is connected.");
     }
 

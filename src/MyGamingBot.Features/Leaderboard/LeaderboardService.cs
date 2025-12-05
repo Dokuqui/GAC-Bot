@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using MyGamingBot.Data;
 using MyGamingBot.Data.Models;
 
@@ -6,42 +7,52 @@ namespace MyGamingBot.Features.Leaderboard;
 
 public class LeaderboardService
 {
-    private readonly BotDbContext _db;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public LeaderboardService(BotDbContext dbContext)
+    public LeaderboardService(IServiceScopeFactory scopeFactory)
     {
-        _db = dbContext;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task GivePointAsync(ulong guildId, ulong userId)
     {
-        var entry = await _db.LeaderboardEntries
-            .FirstOrDefaultAsync(e => e.GuildId == guildId && e.UserId == userId);
-
-        if (entry == null)
+        using (var scope = _scopeFactory.CreateScope())
         {
-            entry = new LeaderboardEntry
+            var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+            
+            var entry = await db.LeaderboardEntries
+                .FirstOrDefaultAsync(e => e.GuildId == guildId && e.UserId == userId);
+
+            if (entry == null)
             {
-                GuildId = guildId,
-                UserId = userId,
-                Points = 1
-            };
-            await _db.LeaderboardEntries.AddAsync(entry);
-        }
-        else
-        {
-            entry.Points++;
-        }
+                entry = new LeaderboardEntry
+                {
+                    GuildId = guildId,
+                    UserId = userId,
+                    Points = 1
+                };
+                await db.LeaderboardEntries.AddAsync(entry);
+            }
+            else
+            {
+                entry.Points++;
+            }
 
-        await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
+        }
     }
 
     public async Task<List<LeaderboardEntry>> GetLeaderboardAsync(ulong guildId)
     {
-        return await _db.LeaderboardEntries
-            .Where(e => e.GuildId == guildId)
-            .OrderByDescending(e => e.Points)
-            .Take(5)
-            .ToListAsync();
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+
+            return await db.LeaderboardEntries
+                .Where(e => e.GuildId == guildId)
+                .OrderByDescending(e => e.Points)
+                .Take(5)
+                .ToListAsync();
+        }
     }
 }

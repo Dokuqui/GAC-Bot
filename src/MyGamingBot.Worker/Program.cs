@@ -3,6 +3,7 @@ using DSharpPlus;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.Lavalink;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,7 +30,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         {
             Token = token,
             TokenType = TokenType.Bot,
-            Intents = DiscordIntents.Guilds | DiscordIntents.GuildMessages
+            Intents = DiscordIntents.Guilds | DiscordIntents.GuildMessages | DiscordIntents.GuildVoiceStates
         });
 
         discord.UseInteractivity(new InteractivityConfiguration
@@ -40,6 +41,12 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton(discord);
 
         services.AddHttpClient();
+
+        services.AddSingleton(sp =>
+        {
+            var discord = sp.GetRequiredService<DiscordClient>();
+            return discord.UseLavalink();
+        });
 
         services.AddSingleton(sp =>
         {
@@ -66,7 +73,10 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<MyGamingBot.Features.AI.AiCommands>();
 
         services.AddSingleton<MyGamingBot.Features.Scheduling.ScheduleCommands>();
-        
+
+        services.AddSingleton<MyGamingBot.Features.Music.MusicCommands>();
+        services.AddSingleton<MyGamingBot.Features.Music.MusicService>();
+
         services.AddHostedService<BotHostedService>();
     })
     .Build();
